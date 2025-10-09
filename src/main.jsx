@@ -13,13 +13,15 @@ const issues = [
 function App() {
   const [query, setQuery] = React.useState("");
   const [openOnly, setOpenOnly] = React.useState(false);
+  const [sortDir, setSortDir] = React.useState(ORDER_STATE.desc); // 'asc' | 'desc'
+  const [issuesList, _] = React.useState(issues);
 
-  const filtered = React.useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return issues
-      .filter((it) => (openOnly ? it.status === "open" : true))
-      .filter((it) => (q ? it.title.toLowerCase().includes(q) || it.assignee.toLowerCase().includes(q) : true));
-  }, [query, openOnly]);
+  const filteredIssues = React.useMemo(() => {
+    const queryString = query.trim().toLowerCase();
+    const issuesListCopy = [...issuesList];
+
+    return issuesListCopy.filter(byStatus(openOnly)).filter(ByTitleOrAssignee(queryString)).sort(orderByPriority(sortDir));
+  }, [query, openOnly, sortDir]);
 
   return (
     <div style={{ fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif", margin: 24, color: "#1f2937" }}>
@@ -35,10 +37,10 @@ function App() {
 
       {/* This summary reads from the same array passed to the list, so any unexpected ordering is easy to notice. */}
       <div style={{ color: "#6b7280", margin: "8px 0 12px" }}>
-        First result: <em>{filtered[0]?.title ?? "—"}</em>
+        First result: <em>{filteredIssues[0]?.title ?? "—"}</em>
       </div>
 
-      <IssueList issues={filtered} />
+      <IssueList issues={filteredIssues} sortDir={sortDir} setSortDir={setSortDir} />
     </div>
   );
 }
@@ -99,20 +101,14 @@ function Select({ label, value, onChange, options, placeholder = "Select..." }) 
 
 const priorityWeight = { low: 1, medium: 2, high: 3 };
 
-function IssueList({ issues }) {
-  const [sortDir, setSortDir] = React.useState("desc"); // 'asc' | 'desc'
-
+function IssueList({ issues, sortDir, setSortDir }) {
   // Intentionally sorts the incoming array directly (observe behavior when interacting with filters and sort).
-  const sorted = issues.sort((a, b) => {
-    const d = priorityWeight[b.priority] - priorityWeight[a.priority];
-    return sortDir === "asc" ? -d : d;
-  });
 
   return (
     <section aria-label="Issues">
       <div className="row" style={{ display: "flex", gap: 12, alignItems: "center", justifyContent: "space-between", margin: "8px 0" }}>
         <div>
-          <strong>{sorted.length}</strong> result{sorted.length !== 1 ? "s" : ""}
+          <strong>{issues.length}</strong> result{issues.length !== 1 ? "s" : ""}
         </div>
         <div className="row" style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <Select
@@ -120,15 +116,15 @@ function IssueList({ issues }) {
             value={sortDir}
             onChange={setSortDir}
             options={[
-              { value: "desc", label: "High → Low" },
-              { value: "asc", label: "Low → High" },
+              { value: ORDER_STATE.desc, label: "High → Low" },
+              { value: ORDER_STATE.asc, label: "Low → High" },
             ]}
             placeholder="Direction"
           />
         </div>
       </div>
 
-      {sorted.map((it) => (
+      {issues.map((it) => (
         <IssueRow key={it.id} issue={it} />
       ))}
     </section>
@@ -136,8 +132,8 @@ function IssueList({ issues }) {
 }
 
 function IssueRow({ issue }) {
-  const statusClass = issue.status === "open" ? "open" : "closed";
-  const statusLabel = issue.status === "open" ? "Open" : "Closed";
+  const statusClass = issue.status === CHECKBOX_STATE.open ? "open" : "closed";
+  const statusLabel = issue.status === CHECKBOX_STATE.open ? "Open" : "Closed";
   const priorityLabel = issue.priority[0].toUpperCase() + issue.priority.slice(1);
 
   return (
@@ -202,6 +198,34 @@ function IssueRow({ issue }) {
     </article>
   );
 }
+
+// utils
+function orderByPriority(sortDir) {
+  return (a, b) => {
+    const d = priorityWeight[b.priority] - priorityWeight[a.priority];
+    return sortDir === ORDER_STATE.asc ? -d : d;
+  };
+}
+
+function byStatus(openOnly) {
+  return (it) => (openOnly ? it.status === CHECKBOX_STATE.open : true);
+}
+
+function ByTitleOrAssignee(q) {
+  return (it) => (q ? it.title.toLowerCase().includes(q) || it.assignee.toLowerCase().includes(q) : true);
+}
+
+// enums
+const CHECKBOX_STATE = {
+  open: "open",
+};
+
+const ORDER_STATE = {
+  asc: "asc",
+  desc: "desc",
+};
+
+Object.freeze(CHECKBOX_STATE, ORDER_STATE);
 
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>
