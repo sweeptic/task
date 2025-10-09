@@ -15,13 +15,19 @@ function App() {
   const [openOnly, setOpenOnly] = React.useState(false);
   const [sortDir, setSortDir] = React.useState(ORDER_STATE.desc); // 'asc' | 'desc'
   const [issuesList, _] = React.useState(issues);
+  const [priorityFilter, setPriorityFilter] = React.useState(PRIORITY_STATE.all);
+
+  const priorityDisabled = priorityFilter !== PRIORITY_STATE.all;
 
   const filteredIssues = React.useMemo(() => {
     const queryString = query.trim().toLowerCase();
-    const issuesListCopy = [...issuesList];
 
-    return issuesListCopy.filter(byStatus(openOnly)).filter(ByTitleOrAssignee(queryString)).sort(orderByPriority(sortDir));
-  }, [query, openOnly, sortDir]);
+    return [...issuesList]
+      .filter(byStatus(openOnly))
+      .filter(byTitleOrAssignee(queryString))
+      .filter(byPriority(priorityFilter))
+      .sort(orderByPriority(sortDir));
+  }, [query, openOnly, sortDir, priorityFilter]);
 
   return (
     <div style={{ fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif", margin: 24, color: "#1f2937" }}>
@@ -32,6 +38,8 @@ function App() {
         onQueryChange={setQuery}
         openOnly={openOnly}
         onOpenOnlyChange={setOpenOnly}
+        priorityFilter={priorityFilter}
+        setPriorityFilter={setPriorityFilter}
         // Add an additional filter control here for Priority (All/Low/Medium/High).
       />
 
@@ -40,12 +48,12 @@ function App() {
         First result: <em>{filteredIssues[0]?.title ?? "—"}</em>
       </div>
 
-      <IssueList issues={filteredIssues} sortDir={sortDir} setSortDir={setSortDir} />
+      <IssueList issues={filteredIssues} sortDir={sortDir} setSortDir={setSortDir} priorityDisabled={priorityDisabled} />
     </div>
   );
 }
 
-function Filters({ query, onQueryChange, openOnly, onOpenOnlyChange }) {
+function Filters({ query, onQueryChange, openOnly, onOpenOnlyChange, priorityFilter, setPriorityFilter }) {
   return (
     <div
       className="card"
@@ -70,6 +78,20 @@ function Filters({ query, onQueryChange, openOnly, onOpenOnlyChange }) {
           <input type="checkbox" checked={openOnly} onChange={(e) => onOpenOnlyChange(e.target.checked)} aria-label="Open issues only" />
           Open only
         </label>
+        <label style={{ display: "inline-flex", gap: 8, alignItems: "center", paddingLeft: "1rem" }}>
+          <Select
+            label="Filter by priority"
+            value={priorityFilter}
+            onChange={setPriorityFilter}
+            options={[
+              { value: PRIORITY_STATE.all, label: "All" },
+              { value: PRIORITY_STATE.low, label: "Low" },
+              { value: PRIORITY_STATE.medium, label: "Medium" },
+              { value: PRIORITY_STATE.high, label: "High" },
+            ]}
+            placeholder="Priority"
+          />
+        </label>
 
         {/* Add a Priority select here using the Select component below. */}
         {/* Example usage pattern is in IssueList (Sort direction). */}
@@ -78,7 +100,7 @@ function Filters({ query, onQueryChange, openOnly, onOpenOnlyChange }) {
   );
 }
 
-function Select({ label, value, onChange, options, placeholder = "Select..." }) {
+function Select({ label, value, onChange, options, disabled, placeholder = "Select..." }) {
   return (
     <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
       <span>{label}</span>
@@ -87,6 +109,7 @@ function Select({ label, value, onChange, options, placeholder = "Select..." }) 
         onChange={(e) => onChange(e.target.value)}
         aria-label={label}
         style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #d1d5db" }}
+        disabled={disabled}
       >
         <option value="">{placeholder}</option>
         {options.map((opt) => (
@@ -101,7 +124,7 @@ function Select({ label, value, onChange, options, placeholder = "Select..." }) 
 
 const priorityWeight = { low: 1, medium: 2, high: 3 };
 
-function IssueList({ issues, sortDir, setSortDir }) {
+function IssueList({ issues, sortDir, setSortDir, priorityDisabled }) {
   // Intentionally sorts the incoming array directly (observe behavior when interacting with filters and sort).
 
   return (
@@ -115,11 +138,16 @@ function IssueList({ issues, sortDir, setSortDir }) {
             label="Sort by priority"
             value={sortDir}
             onChange={setSortDir}
-            options={[
-              { value: ORDER_STATE.desc, label: "High → Low" },
-              { value: ORDER_STATE.asc, label: "Low → High" },
-            ]}
+            options={
+              priorityDisabled
+                ? [{ value: sortDir, label: "Disabled" }]
+                : [
+                    { value: ORDER_STATE.desc, label: "High → Low" },
+                    { value: ORDER_STATE.asc, label: "Low → High" },
+                  ]
+            }
             placeholder="Direction"
+            disabled={priorityDisabled}
           />
         </div>
       </div>
@@ -211,8 +239,12 @@ function byStatus(openOnly) {
   return (it) => (openOnly ? it.status === CHECKBOX_STATE.open : true);
 }
 
-function ByTitleOrAssignee(q) {
-  return (it) => (q ? it.title.toLowerCase().includes(q) || it.assignee.toLowerCase().includes(q) : true);
+function byTitleOrAssignee(query) {
+  return (it) => (query ? it.title.toLowerCase().includes(query) || it.assignee.toLowerCase().includes(query) : true);
+}
+
+function byPriority(priority) {
+  return (it) => (priority === PRIORITY_STATE.all ? true : priority === it.priority);
 }
 
 // enums
@@ -220,12 +252,19 @@ const CHECKBOX_STATE = {
   open: "open",
 };
 
+const PRIORITY_STATE = {
+  all: "all",
+  low: "low",
+  medium: "medium",
+  high: "high",
+};
+
 const ORDER_STATE = {
   asc: "asc",
   desc: "desc",
 };
 
-Object.freeze(CHECKBOX_STATE, ORDER_STATE);
+Object.freeze(CHECKBOX_STATE, PRIORITY_STATE, ORDER_STATE);
 
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>
