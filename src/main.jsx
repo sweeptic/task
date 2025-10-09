@@ -23,9 +23,9 @@ function App() {
     const queryString = query.trim().toLowerCase();
 
     return [...issuesList]
-      .filter(byStatus(openOnly))
-      .filter(byTitleOrAssignee(queryString))
-      .filter(byPriority(priorityFilter))
+      .filter(filterByStatus(openOnly))
+      .filter(filterByTitleOrAssignee(queryString))
+      .filter(filterByPriority(priorityFilter))
       .sort(orderByPriority(sortDir));
   }, [query, openOnly, sortDir, priorityFilter]);
 
@@ -235,15 +235,15 @@ function orderByPriority(sortDir) {
   };
 }
 
-function byStatus(openOnly) {
+function filterByStatus(openOnly) {
   return (it) => (openOnly ? it.status === CHECKBOX_STATE.open : true);
 }
 
-function byTitleOrAssignee(query) {
+function filterByTitleOrAssignee(query) {
   return (it) => (query ? it.title.toLowerCase().includes(query) || it.assignee.toLowerCase().includes(query) : true);
 }
 
-function byPriority(priority) {
+function filterByPriority(priority) {
   return (it) => (priority === PRIORITY_STATE.all ? true : priority === it.priority);
 }
 
