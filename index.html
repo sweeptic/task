@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>React Mini UI Challenge</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 24px; color: #1f2937; }
+      .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+      .card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; margin: 8px 0; }
+      .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; line-height: 1.5; }
+      .open { background: #ecfdf5; color: #065f46; }
+      .closed { background: #f3f4f6; color: #374151; }
+      .tag { display: inline-block; background: #eef2ff; color: #3730a3; padding: 2px 8px; border-radius: 999px; font-size: 12px; margin-left: 6px; }
+      button { border: 1px solid #d1d5db; background: white; padding: 6px 10px; border-radius: 6px; cursor: pointer; }
+      button[aria-pressed="true"] { background: #111827; color: white; border-color: #111827; }
+      input[type="search"], select { padding: 6px 10px; border-radius: 6px; border: 1px solid #d1d5db; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
